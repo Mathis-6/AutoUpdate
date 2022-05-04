@@ -54,7 +54,7 @@ programs = {
 "hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"})
 }
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
 
 
@@ -166,7 +166,6 @@ class APIError(Exception):
 	pass
 
 
-
 # Getting the online version then decide if we update or not
 PrintMessage(severity.info, "Checking for updates...", end="")
 latest_version = DoRequest("https://raw.githubusercontent.com/PseudoTemporaire/AutoUpdate/main/version").decode().rstrip()
@@ -175,12 +174,15 @@ if VERSION != latest_version:
 	print(" New version available: '" + latest_version + "'")
 	while True:
 		choice = input("Make update ? [Y/n] ").lower()
-		if choice == "y" or choice == "yes":
+		if choice == "" or choice == "y" or choice == "yes":
 			print("Downloading update...", end="")
 			DownloadFile("https://raw.githubusercontent.com/PseudoTemporaire/AutoUpdate/main/updates.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
 			print(" OK !")
 			print("Restarting...")
-			os.execv(sys.argv[0], sys.argv)
+			if __file__.endswith(".py") or __file__.endswith(".pyc"):
+				sys.argv.insert(0, "python")
+			os.execvp(sys.argv[0], sys.argv)
+			
 			exit(0)
 		
 		elif choice == "n" or choice == "no":
