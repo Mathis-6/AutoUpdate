@@ -135,7 +135,7 @@ def ScrapeFosshubDownloadPage(page, project_name, project_id):
 
 def DownloadFile(url, path="", name="", ext="exe"):
 	try:
-		req = requests.get(url, stream=True)
+		req = requests.get(url, headers={ "user-agent": USER_AGENT }, stream=True)
 		if not path:
 			if not name:
 				name = hashlib.md5(url.encode()).hexdigest()
@@ -156,7 +156,7 @@ def DownloadFile(url, path="", name="", ext="exe"):
 def SearchPath(program):
 	paths = os.environ["path"].split(";")
 	for path in paths:
-		path = (path if path.endswith("\\") else path + "\\") + program + ".exe"
+		path = path + ("" if path.endswith("\\") else "\\") + program + ".exe"
 		if os.path.exists(path) and os.path.isfile(path):
 			return path
 		
