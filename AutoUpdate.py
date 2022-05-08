@@ -179,7 +179,7 @@ if VERSION != latest_version:
 			DownloadFile("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/AutoUpdate.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
 			print(" OK !")
 			print("Restarting...")
-			if __file__.endswith(".py") or __file__.endswith(".pyc"):
+			if sys.argv[0].endswith(".py") or sys.argv[0].endswith(".pyc"):
 				sys.argv.insert(0, "python")
 			os.execvp(sys.argv[0], sys.argv)
 			
