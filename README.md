@@ -1,7 +1,7 @@
 # AutoUpdate&#46;py
 
-*Hey, a new version is available !* 
-Updating programs is annoying 
+*Hey, a new version is available !*  
+Updating programs is annoying  
 AutoUpdate&#46;py is a python script to do this for you.
 
 ## Features
