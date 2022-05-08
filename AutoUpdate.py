@@ -54,9 +54,8 @@ programs = {
 "hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"})
 }
 
-VERSION = "1.0.1"
+VERSION = "1.1.1"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
-
 
 
 
@@ -72,7 +71,7 @@ def PrintMessage(severity, message, end="\n"):
 
 def DoRequest(url):
 	try:
-		req = requests.get(url, headers={ "user-agent": USER_AGENT })
+		req = requests.get(url, headers={ "user-agent": USER_AGENT }, allow_redirects=True)
 		return req.content
 		
 	except Exception as e:
@@ -118,7 +117,7 @@ def ScrapeFosshubDownloadPage(page, project_name, project_id):
 	
 	except Exception as e:
 		PrintMessage(severity.error, str(e))
-		Exit(500)
+		Exit(1)
 	
 	
 	
@@ -127,15 +126,20 @@ def ScrapeFosshubDownloadPage(page, project_name, project_id):
 		json_data = json_data["data"]["url"]
 	except Exception as e:
 		PrintMessage(severity.error, str(e))
-		Exit(500)
+		Exit(1)
 	
 	return json_data
 
 
 
-def DownloadFile(url, path="", name="", ext="exe"):
+def DownloadFile(url, path="", name="", ext="exe", user_agent=USER_AGENT):
+	
+	headers = {}
+	if user_agent:
+		headers["user-agent"] = user_agent
+	
 	try:
-		req = requests.get(url, headers={ "user-agent": USER_AGENT }, stream=True)
+		req = requests.get(url, headers=headers, stream=True, allow_redirects=True)
 		if not path:
 			if not name:
 				name = hashlib.md5(url.encode()).hexdigest()
@@ -370,7 +374,7 @@ try:
 	if programs["vlc"].version != latest_version:
 		PrintMessage(severity.update_available, "VLC " + programs["vlc"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading VLC...", end="")
-		setup_path = DownloadFile(final_link, name="VLC")
+		setup_path = DownloadFile(final_link, name="VLC", user_agent=None)
 		print(" Done !")
 		os.system(setup_path)
 	
