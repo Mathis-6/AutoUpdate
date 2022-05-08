@@ -168,7 +168,7 @@ class APIError(Exception):
 
 # Getting the online version then decide if we update or not
 PrintMessage(severity.info, "Checking for updates...", end="")
-latest_version = DoRequest("https://raw.githubusercontent.com/PseudoTemporaire/AutoUpdate/main/version").decode().rstrip()
+latest_version = DoRequest("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/version").decode().rstrip()
 
 if VERSION != latest_version:
 	print(" New version available: '" + latest_version + "'")
@@ -176,7 +176,7 @@ if VERSION != latest_version:
 		choice = input("Make update ? [Y/n] ").lower()
 		if choice == "" or choice == "y" or choice == "yes":
 			print("Downloading update...", end="")
-			DownloadFile("https://raw.githubusercontent.com/PseudoTemporaire/AutoUpdate/main/updates.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
+			DownloadFile("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/AutoUpdate.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
 			print(" OK !")
 			print("Restarting...")
 			if __file__.endswith(".py") or __file__.endswith(".pyc"):
