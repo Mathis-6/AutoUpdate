@@ -132,7 +132,7 @@ def ScrapeFosshubDownloadPage(page, project_name, project_id):
 
 
 
-def DownloadFile(url, path="", name="", ext="exe", user_agent=USER_AGENT):
+def DownloadFile(url, path="", user_agent=USER_AGENT):
 	
 	headers = {}
 	if user_agent:
@@ -141,9 +141,7 @@ def DownloadFile(url, path="", name="", ext="exe", user_agent=USER_AGENT):
 	try:
 		req = requests.get(url, headers=headers, stream=True, allow_redirects=True)
 		if not path:
-			if not name:
-				name = hashlib.md5(url.encode()).hexdigest()
-			path = os.environ["temp"] + "\\" + name + "." + ext
+			path = os.environ["temp"] + "\\" + hashlib.md5(url.encode()).hexdigest() + ".bin"
 		file = open(path, "wb")
 		for chunk in req.iter_content(4096):
 			file.write(chunk)
@@ -155,6 +153,15 @@ def DownloadFile(url, path="", name="", ext="exe", user_agent=USER_AGENT):
 		PrintMessage(severity.error, str(e))
 		Exit(1)
 
+
+def DownloadSetup(url, program, user_agent=USER_AGENT):
+	
+	if hasattr(programs[program], "path") and programs[program].path != "":
+		path = programs[program].path
+	else:
+		path = os.environ["temp"] + "\\AutoUpdate-" + programs[program].name + "." + programs[program].ext
+	
+	return DownloadFile(url, path=path, user_agent=user_agent)
 
 
 def SearchPath(program):
@@ -218,7 +225,7 @@ try:
 	if programs["mkvtoolnix"].version != latest_version:
 		PrintMessage(severity.update_available, "MKVToolNix " + programs["mkvtoolnix"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading MKVToolNix...", end="")
-		setup_path = DownloadFile(ScrapeFosshubDownloadPage(page, "MKVToolNix", "5b8f889d59eee027c3d78aab"), name="MKVToolNix")
+		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "MKVToolNix", "5b8f889d59eee027c3d78aab"), program="mkvtoolnix")
 		print(" Done !")
 		os.system(setup_path)
 		
@@ -261,7 +268,7 @@ if path:
 	if programs["putty"].version != latest_version:
 		PrintMessage(severity.update_available, "PuTTY " + programs["putty"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading PuTTY...", end="")
-		DownloadFile(page.find_all("span", class_="downloadfile")[4].find("a")["href"], programs["putty"].path)
+		DownloadSetup(page.find_all("span", class_="downloadfile")[4].find("a")["href"], program="putty")
 		print(" Done !")
 
 else:
@@ -308,7 +315,7 @@ try:
 			PrintMessage(severity.error, "Could not find download url for 7-Zip")
 			Exit(1)
 		
-		setup_path = DownloadFile(final_link, name="7-Zip")
+		setup_path = DownloadSetup(final_link, program="7zip")
 		print(" Done !")
 		os.system(setup_path)
 
@@ -334,7 +341,7 @@ latest_version = download_button.text[download_button.text.index("Download Pytho
 if programs["python"].version != latest_version:
 	PrintMessage(severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
 	PrintMessage(severity.info, "Downloading Python...", end="")
-	setup_path = DownloadFile(download_button["href"], name="Python")
+	setup_path = DownloadSetup(download_button["href"], program="python")
 	print(" Done !")
 	os.system(setup_path + " /passive PrependPath=1 Include_doc=0 Include_tcltk=0 Include_test=0")	# These parameters will trigger auto installation mode
 
@@ -374,7 +381,7 @@ try:
 	if programs["vlc"].version != latest_version:
 		PrintMessage(severity.update_available, "VLC " + programs["vlc"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading VLC...", end="")
-		setup_path = DownloadFile(final_link, name="VLC", user_agent=None)
+		setup_path = DownloadSetup(final_link, program="vlc", user_agent=None)
 		print(" Done !")
 		os.system(setup_path)
 	
@@ -432,7 +439,7 @@ try:
 			PrintMessage(severity.error, "Could not find download url for Notepad++")
 			Exit(1)
 		
-		setup_path = DownloadFile(final_link, name="Notepad++")
+		setup_path = DownloadSetup(final_link, program="npp")
 		print(" Done !")
 		os.system(setup_path)
 	
@@ -474,7 +481,7 @@ try:
 	if programs["veracrypt"].version != latest_version:
 		PrintMessage(severity.update_available, "VeraCrypt " + programs["veracrypt"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading VeraCrypt...", end="")
-		setup_path = DownloadFile(page.find_all("ul")[1].find("a")["href"], name="VeraCrypt")
+		setup_path = DownloadSetup(page.find_all("ul")[1].find("a")["href"], program="veracrypt")
 		print(" Done !")
 		os.system(setup_path)
 	
@@ -546,7 +553,7 @@ try:
 			Exit(1)
 		
 		
-		setup_path = DownloadFile(last_download_page.replace("/download", "") + "/download", name="ImageGlass", ext="msi")
+		setup_path = DownloadSetup(last_download_page.replace("/download", "") + "/download", program="imageglass")
 		print(" Done !")
 		os.system(setup_path)
 
@@ -624,7 +631,7 @@ try:
 			Exit(1)
 		
 		
-		setup_path = DownloadFile(final_link, name="OpenVPN", ext="msi")
+		setup_path = DownloadSetup(final_link, program="openvpn")
 		print(" Done !")
 		os.system(setup_path)
 
@@ -653,7 +660,7 @@ try:
 	if programs["qbittorrent"].version != latest_version:
 		PrintMessage(severity.update_available, "qBittorrent " + programs["qbittorrent"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading qBittorrent...", end="")
-		setup_path = DownloadFile(ScrapeFosshubDownloadPage(page, "qBittorrent", "5b8793a7f9ee5a5c3e97a3b2"), name="qBittorrent")
+		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "qBittorrent", "5b8793a7f9ee5a5c3e97a3b2"), program="qbittorrent")
 		print(" Done !")
 		os.system(setup_path)
 		
@@ -683,7 +690,7 @@ try:
 	if programs["hxd"].version != latest_version:
 		PrintMessage(severity.update_available, "HxD " + programs["hxd"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading HxD...", end="")
-		setup_path = DownloadFile("https://mh-nexus.de/downloads/HxDSetup.zip", name="HxD", ext="zip")
+		setup_path = DownloadSetup("https://mh-nexus.de/downloads/HxDSetup.zip", program="hxd")
 		print(" Done !")
 		os.system(setup_path)
 
