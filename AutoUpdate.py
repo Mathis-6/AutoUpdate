@@ -1,22 +1,34 @@
-import requests
 import winreg
 import sys
 import msvcrt
-from colorama import init, Fore
 import os
 import platform
 import math
 import time
 import json
 import hashlib
-from bs4 import BeautifulSoup
 
 
+# If the module is not found, download it, install it and import it
+def SecureImport(module_name):
+	try:
+		globals()[module_name] = __import__(module_name)
+	except ModuleNotFoundError:
+		os.system("python -m pip install " + module_name)
+		globals()[module_name] = __import__(module_name)
 
-init()
+
+SecureImport("requests")
+SecureImport("colorama")
+SecureImport("bs4")
+
+BeautifulSoup = bs4.BeautifulSoup
+
+
+colorama.init()
 
 if os.name != "nt":
-	print("[" + Fore.RED + "ERROR\033[0m] This script is only available for Windows.")
+	print("[" + colorama.Fore.RED + "ERROR\033[0m] This script is only available for Windows.")
 	exit(1)
 
 
@@ -30,11 +42,11 @@ severity = type("", (), {
 })
 
 colors = [
-type("", (), {"color": Fore.GREEN, "text": "INFO"}),
-type("", (), {"color": Fore.YELLOW, "text": "WARN"}),
-type("", (), {"color": Fore.RED, "text": "ERROR"}),
-type("", (), {"color": Fore.CYAN, "text": "UPDATE"}),
-type("", (), {"color": Fore.MAGENTA, "text": "DEBUG"})
+type("", (), {"color": colorama.Fore.GREEN, "text": "INFO"}),
+type("", (), {"color": colorama.Fore.YELLOW, "text": "WARN"}),
+type("", (), {"color": colorama.Fore.RED, "text": "ERROR"}),
+type("", (), {"color": colorama.Fore.CYAN, "text": "UPDATE"}),
+type("", (), {"color": colorama.Fore.MAGENTA, "text": "DEBUG"})
 ]
 
 
@@ -54,7 +66,7 @@ programs = {
 "hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"})
 }
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
 
 
@@ -76,7 +88,7 @@ def DoRequest(url):
 		
 	except Exception as e:
 		PrintMessage(severity.error, str(e))
-		return None
+		raise requests.exceptions.RequestException
 
 
 def ScrapeFosshubDownloadPage(page, project_name, project_id):
