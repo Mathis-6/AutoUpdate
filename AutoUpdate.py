@@ -52,21 +52,22 @@ type("", (), {"color": colorama.Fore.MAGENTA, "text": "DEBUG"})
 
 # This list will be filled with detected programs versions
 programs = {
-"npp": type("", (), {"name": "Notepad++", "version": "", "ext": "exe"}),
-"vlc": type("", (), {"name": "VLC", "version": "", "ext": "exe"}),
 "mkvtoolnix": type("", (), {"name": "MKVToolNix", "version": "", "ext": "exe"}),
-"processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"}),
 "putty": type("", (), {"name": "PuTTY", "version": "", "path": "", "ext": "exe"}),
 "7zip": type("", (), {"name": "7zip", "version": "", "ext": "exe"}),
+"7zip-zstd": type("", (), {"name": "7zip-Zstandard", "version": "", "ext": "exe"}),
 "python": type("", (), {"name": "Python", "version": "", "ext": "exe"}),
+"vlc": type("", (), {"name": "VLC", "version": "", "ext": "exe"}),
+"npp": type("", (), {"name": "Notepad++", "version": "", "ext": "exe"}),
 "veracrypt": type("", (), {"name": "VeraCrypt", "version": "", "ext": "exe"}),
 "imageglass": type("", (), {"name": "ImageGlass", "version": "", "ext": "msi"}),
 "openvpn": type("", (), {"name": "OpenVPN", "version": "", "ext": "msi"}),
 "qbittorrent": type("", (), {"name": "qBittorrent", "version": "", "ext": "exe"}),
-"hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"})
+"hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"}),
+"processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.1.3"
+VERSION = "1.2.0"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
 
 
@@ -84,9 +85,12 @@ def PrintMessage(severity, message, end="\n"):
 def DoRequest(url):
 	try:
 		req = requests.get(url, headers={ "user-agent": USER_AGENT }, allow_redirects=True)
+		if req.status_code != 200:
+			PrintMessage(severity.warn, "HTTP request returned code " + str(req.status_code) + ". This may be temporary or fixed in a new update.")
+			raise Skip
 		return req.content
 		
-	except Exception as e:
+	except requests.exceptions.RequestException as e:
 		PrintMessage(severity.error, str(e))
 		raise requests.exceptions.RequestException
 
@@ -185,7 +189,8 @@ def SearchPath(program):
 		
 	return False
 
-class APIError(Exception):
+
+class Skip(Exception):
 	pass
 
 
@@ -215,7 +220,7 @@ if VERSION != latest_version:
 			continue
 
 else:
-	print(" No update")
+	print(" " + VERSION)
 
 
 
@@ -239,11 +244,13 @@ try:
 		PrintMessage(severity.info, "Downloading MKVToolNix...", end="")
 		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "MKVToolNix", "5b8f889d59eee027c3d78aab"), program="mkvtoolnix")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 		
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -329,11 +336,71 @@ try:
 		
 		setup_path = DownloadSetup(final_link, program="7zip")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
+
+
+
+
+########## 7-Zip Zstandard ##########
+
+PrintMessage(severity.info, "Checking 7-Zip-Zstandard...", end="")
+
+try:
+	regkey = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7-Zip-Zstandard")
+	regvalue = winreg.QueryValueEx(regkey, "DisplayVersion")
+	regkey.Close()
+	programs["7zip-zstd"].version = regvalue[0][0:regvalue[0].index(" ")]
+	print(" Version: " + programs["7zip-zstd"].version)
+	
+	page = BeautifulSoup(DoRequest("https://github.com/mcmilk/7-Zip-zstd/releases/latest"), features="html.parser")
+	latest_version = ""
+	
+	release_title = page.find(class_="d-inline mr-3").text.split()
+	for part in release_title:
+		if "." in part and part.replace(".", "0").isnumeric():
+			latest_version = part
+			break
+	
+	
+	
+	if programs["7zip-zstd"].version != latest_version:
+		PrintMessage(severity.update_available, "7-Zip-Zstandard " + programs["7zip-zstd"].version + " ==> " + latest_version)
+		PrintMessage(severity.info, "Downloading 7-Zip-Zstandard...", end="")
+		
+		final_link = ""
+		assets_list = page.find("div", class_="Box Box--condensed mt-3")
+		assets_list = assets_list.find_all("a")
+		
+		for link in assets_list:
+			if link["href"].endswith(".exe") and "x64" in link["href"] and latest_version in link["href"]:
+				final_link = link["href"]
+				if final_link.startswith("//"):
+					final_link = "https:" + final_link
+				elif final_link.startswith("/"):
+					final_link = "https://github.com" + final_link
+				
+				break
+			
+		if final_link == "":
+			PrintMessage(severity.error, "Could not find download url for 7-Zip-Zstandard")
+			Exit(1)
+		
+		print(final_link)
+		setup_path = DownloadSetup(final_link, program="7zip-zstd")
+		print(" Done !")
+		os.system("\"" + setup_path + "\"")
+
+
+except (FileNotFoundError, OSError):
+	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -395,12 +462,14 @@ try:
 		PrintMessage(severity.info, "Downloading VLC...", end="")
 		setup_path = DownloadSetup(final_link, program="vlc", user_agent=None)
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 	
 
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -418,7 +487,7 @@ try:
 	
 	page = BeautifulSoup(DoRequest("https://notepad-plus-plus.org/downloads/"), features="html.parser")
 	
-	href_to_latest = page.find("ul", "patterns-list").find("a")
+	href_to_latest = page.find("ul", class_="patterns-list").find("a")
 	
 	latest_version = href_to_latest.text.split()
 	for part in latest_version:
@@ -453,12 +522,14 @@ try:
 		
 		setup_path = DownloadSetup(final_link, program="npp")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 	
 
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -495,11 +566,13 @@ try:
 		PrintMessage(severity.info, "Downloading VeraCrypt...", end="")
 		setup_path = DownloadSetup(page.find_all("ul")[1].find("a")["href"], program="veracrypt")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 	
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -541,7 +614,7 @@ try:
 	
 	page = BeautifulSoup(DoRequest("https://imageglass.org/releases"), features="html.parser")
 	
-	latest_release = page.find("ul", "article-list").find("li")
+	latest_release = page.find("ul", class_="article-list").find("li")
 	
 	latest_version = latest_release.text[latest_release.text.index("Version: ") + 9:]
 	latest_version = latest_version[0:latest_version.index("\n")]
@@ -561,17 +634,19 @@ try:
 			
 		
 		if last_download_page == "":
-			PrintMessage(severity.error, "Could not find download url for ImageGlass")
-			Exit(1)
+			PrintMessage(severity.warn, "Could not find download url for ImageGlass")
+			raise Skip
 		
 		
 		setup_path = DownloadSetup(last_download_page.replace("/download", "") + "/download", program="imageglass")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -645,12 +720,14 @@ try:
 		
 		setup_path = DownloadSetup(final_link, program="openvpn")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 
 
 	
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -674,11 +751,13 @@ try:
 		PrintMessage(severity.info, "Downloading qBittorrent...", end="")
 		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "qBittorrent", "5b8793a7f9ee5a5c3e97a3b2"), program="qbittorrent")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 		
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
 
 
@@ -704,12 +783,47 @@ try:
 		PrintMessage(severity.info, "Downloading HxD...", end="")
 		setup_path = DownloadSetup("https://mh-nexus.de/downloads/HxDSetup.zip", program="hxd")
 		print(" Done !")
-		os.system(setup_path)
+		os.system("\"" + setup_path + "\"")
 
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
+except Skip:
+	pass
 
+
+
+########## PROCESS HACKER 2 ##########
+
+PrintMessage(severity.info, "Checking Process Hacker 2...", end="")
+
+try:
+	regkey = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1")
+	regvalue = winreg.QueryValueEx(regkey, "DisplayName")
+	regkey.Close()
+	programs["processhacker"].version = regvalue[0][15:]
+	programs["processhacker"].version = programs["processhacker"].version[0:programs["processhacker"].version.index(" ")]
+	print(" Version: " + programs["processhacker"].version)
+	
+	page = BeautifulSoup(DoRequest("https://processhacker.sourceforge.io/downloads.php"), features="html.parser")
+	
+	final_link = page.find("a", class_="text-left")["href"]
+	latest_version = final_link[final_link.index("/processhacker-") + 15:]
+	latest_version = latest_version[0:latest_version.index("-setup")]
+	
+	
+	if programs["processhacker"].version != latest_version:
+		PrintMessage(severity.update_available, "Process Hacker " + programs["processhacker"].version + " ==> " + latest_version)
+		PrintMessage(severity.info, "Downloading Process Hacker...", end="")
+		setup_path = DownloadSetup(final_link, program="processhacker", user_agent=None)
+		print(" Done !")
+		os.system("\"" + setup_path + "\"")
+
+
+except (FileNotFoundError, OSError):
+	print(" Not found.")
+except Skip:
+	pass
 
 
 
