@@ -6,9 +6,10 @@ AutoUpdate&#46;py is a python script to do this for you.
 
 ## Features
 
-For now, these 11 programs are supported :
+For now, these 12 programs are supported :
 - Notepad++
 - PuTTY
+- AnyDesk
 - Veracrypt
 - 7-Zip
 - HxD
@@ -22,7 +23,7 @@ For now, these 11 programs are supported :
 
 ## How it works
 
-For each of the 11 currently suported programs, this script gets the locally installed version, then scrape the online download page of the software to retrieve the latest version.  
+For each of the 12 currently suported programs, this script gets the locally installed version, then scrape the online download page of the software to retrieve the latest version.  
 If they differ, it downloads the latest update and run it. All you have to do is clicking "Yes" when the setup asks for admin privileges.
 
 ## Intended use
