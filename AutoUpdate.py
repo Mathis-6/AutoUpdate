@@ -54,6 +54,7 @@ type("", (), {"color": colorama.Fore.MAGENTA, "text": "DEBUG"})
 programs = {
 "mkvtoolnix": type("", (), {"name": "MKVToolNix", "version": "", "ext": "exe"}),
 "putty": type("", (), {"name": "PuTTY", "version": "", "path": "", "ext": "exe"}),
+"anydesk": type("", (), {"name": "AnyDesk", "version": "", "ext": "exe"}),
 "7zip": type("", (), {"name": "7zip", "version": "", "ext": "exe"}),
 "7zip-zstd": type("", (), {"name": "7zip-Zstandard", "version": "", "ext": "exe"}),
 "python": type("", (), {"name": "Python", "version": "", "ext": "exe"}),
@@ -67,7 +68,7 @@ programs = {
 "processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
 
 
@@ -264,8 +265,9 @@ if path:
 	data = file.read()
 	file.close()
 	programs["putty"].path = path;
+	version_prefix = b"Release "
 	
-	if b"Release " not in data:
+	if version_prefix not in data:
 		PrintMessage(severity.error, "Unable to determine version, re-downloading it.")
 		try:
 			os.remove(path)
@@ -274,7 +276,7 @@ if path:
 		
 	
 	else:
-		programs["putty"].version = data[data.find(b"Release ") + 8:data[data.find(b"Release ") + 8:].find(b"\x00") + data.find(b"Release ") + 8].decode("utf-8")
+		programs["putty"].version = data[data.find(version_prefix) + 8:data[data.find(version_prefix) + 8:].find(b"\x00") + data.find(version_prefix) + 8].decode("utf-8")
 		print(" Version: " + programs["putty"].version)
 		
 	
@@ -288,6 +290,60 @@ if path:
 		PrintMessage(severity.update_available, "PuTTY " + programs["putty"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading PuTTY...", end="")
 		DownloadSetup(page.find_all("span", class_="downloadfile")[4].find("a")["href"], program="putty")
+		print(" Done !")
+
+else:
+	print(" Not found.")
+
+
+
+########## ANYDESK ##########
+
+PrintMessage(severity.info, "Checking AnyDesk...", end="")
+
+path = SearchPath("anydesk")
+if path:
+	file = open(path, "rb")
+	data = file.read()
+	file.close()
+	programs["anydesk"].path = path;
+	version_prefix = b"<assemblyIdentity version=\""
+	
+	if version_prefix not in data:
+		PrintMessage(severity.error, "Unable to determine version, re-downloading it.")
+		try:
+			os.remove(path)
+		except OSError as e:
+			PrintMessage(severity.error, str(e))
+		
+	
+	else:
+		programs["anydesk"].version = data[data.find(version_prefix) + 27:data[data.find(version_prefix) + 27:].find(b"\"") + data.find(version_prefix) + 27].decode("utf-8")
+		print(" Version: " + programs["anydesk"].version)
+		
+	
+	page = BeautifulSoup(DoRequest("https://anydesk.com/fr/downloads/windows"), features="html.parser")
+	
+	elements = page.find_all("div", class_="d-block")
+	latest_version = ""
+	for element in elements:
+		if element.text.startswith("v"):
+			latest_version = element.text[1:element.text.index(" ")]
+			break
+	
+	if latest_version == "":
+		PrintMessage(severity.warn, "Could not scrape AnyDesk version")
+		
+	local_version_dots = programs["anydesk"].version.count(".")
+	latest_version_dots = latest_version.count(".")
+	if local_version_dots > latest_version_dots:
+		programs["anydesk"].version = programs["anydesk"].version[0:len(latest_version)]
+	
+	
+	if programs["anydesk"].version != latest_version:
+		PrintMessage(severity.update_available, "AnyDesk " + programs["anydesk"].version + " ==> " + latest_version)
+		PrintMessage(severity.info, "Downloading AnyDesk...", end="")
+		DownloadSetup("https://download.anydesk.com/AnyDesk.exe", program="anydesk")
 		print(" Done !")
 
 else:
@@ -596,7 +652,7 @@ try:
 		except FileNotFoundError:
 			pass
 		
-		if value[0] == "ImageGlass":
+		if "ImageGlass" in value[0]:
 			regvalue = winreg.QueryValueEx(subkey, "DisplayVersion")
 			subkey.Close()
 			break
