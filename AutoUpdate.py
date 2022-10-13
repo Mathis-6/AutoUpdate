@@ -68,7 +68,7 @@ programs = {
 "processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
 
 
@@ -191,6 +191,14 @@ def SearchPath(program):
 	return False
 
 
+def AreVersionsDifferent(v1, v2):
+	v1_dots = v1.count(".")
+	v2_dots = v2.count(".")
+	if v1_dots > v2_dots:
+		v1 = v1[0:len(v2)]
+	return v1 != v2
+
+
 class Skip(Exception):
 	pass
 
@@ -240,7 +248,7 @@ try:
 	page = BeautifulSoup(DoRequest("https://www.fosshub.com/MKVToolNix.html"), features="html.parser")
 	latest_version = page.find("dl").find_all("div")[2].find("dd").text
 	
-	if programs["mkvtoolnix"].version != latest_version:
+	if AreVersionsDifferent(programs["mkvtoolnix"].version, latest_version):
 		PrintMessage(severity.update_available, "MKVToolNix " + programs["mkvtoolnix"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading MKVToolNix...", end="")
 		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "MKVToolNix", "5b8f889d59eee027c3d78aab"), program="mkvtoolnix")
@@ -286,7 +294,7 @@ if path:
 	latest_version = latest_version[latest_version.index("(") + 1:]
 	latest_version = latest_version[0:latest_version.index(")")]
 	
-	if programs["putty"].version != latest_version:
+	if AreVersionsDifferent(programs["putty"].version, latest_version):
 		PrintMessage(severity.update_available, "PuTTY " + programs["putty"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading PuTTY...", end="")
 		DownloadSetup(page.find_all("span", class_="downloadfile")[4].find("a")["href"], program="putty")
@@ -333,14 +341,9 @@ if path:
 	
 	if latest_version == "":
 		PrintMessage(severity.warn, "Could not scrape AnyDesk version")
-		
-	local_version_dots = programs["anydesk"].version.count(".")
-	latest_version_dots = latest_version.count(".")
-	if local_version_dots > latest_version_dots:
-		programs["anydesk"].version = programs["anydesk"].version[0:len(latest_version)]
 	
 	
-	if programs["anydesk"].version != latest_version:
+	if AreVersionsDifferent(programs["anydesk"].version, latest_version):
 		PrintMessage(severity.update_available, "AnyDesk " + programs["anydesk"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading AnyDesk...", end="")
 		DownloadSetup("https://download.anydesk.com/AnyDesk.exe", program="anydesk")
@@ -373,7 +376,7 @@ try:
 			latest_version = latest_version[0:latest_version.index(" ")]
 			break
 	
-	if programs["7zip"].version != latest_version:
+	if AreVersionsDifferent(programs["7zip"].version, latest_version):
 		PrintMessage(severity.update_available, "7-Zip " + programs["7zip"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading 7-Zip...", end="")
 		
@@ -417,7 +420,7 @@ try:
 	page = BeautifulSoup(DoRequest("https://github.com/mcmilk/7-Zip-zstd/releases/latest"), features="html.parser")
 	latest_version = ""
 	
-	release_title = page.find(class_="d-inline mr-3").text.split()
+	release_title = page.select_one(".d-inline.mr-3").text.split()
 	for part in release_title:
 		if "." in part and part.replace(".", "0").isnumeric():
 			latest_version = part
@@ -425,12 +428,12 @@ try:
 	
 	
 	
-	if programs["7zip-zstd"].version != latest_version:
+	if AreVersionsDifferent(programs["7zip-zstd"].version, latest_version):
 		PrintMessage(severity.update_available, "7-Zip-Zstandard " + programs["7zip-zstd"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading 7-Zip-Zstandard...", end="")
 		
 		final_link = ""
-		assets_list = page.find("div", class_="Box Box--condensed mt-3")
+		assets_list = page.select_one("div.Box.Box--condensed.mt-3")
 		assets_list = assets_list.find_all("a")
 		
 		for link in assets_list:
@@ -473,7 +476,7 @@ download_button = page.find("div", class_="download-os-windows").find("a")
 
 latest_version = download_button.text[download_button.text.index("Download Python ") + 16:]
 
-if programs["python"].version != latest_version:
+if AreVersionsDifferent(programs["python"].version, latest_version):
 	PrintMessage(severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
 	PrintMessage(severity.info, "Downloading Python...", end="")
 	setup_path = DownloadSetup(download_button["href"], program="python")
@@ -495,7 +498,7 @@ try:
 	
 	page = BeautifulSoup(DoRequest("https://www.videolan.org/vlc/"), features="html.parser")
 	
-	links = page.find("ul", class_="dropdown-menu dropdown-default platform-icons").find_all("a")
+	links = page.select_one("ul.dropdown-menu.dropdown-default.platform-icons").find_all("a")
 	final_link = ""
 	
 	for link in links:
@@ -513,7 +516,7 @@ try:
 	latest_version = final_link[final_link.index("/vlc/") + 5:]
 	latest_version = latest_version[0:latest_version.index("/win64/")]
 	
-	if programs["vlc"].version != latest_version:
+	if AreVersionsDifferent(programs["vlc"].version, latest_version):
 		PrintMessage(severity.update_available, "VLC " + programs["vlc"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading VLC...", end="")
 		setup_path = DownloadSetup(final_link, program="vlc", user_agent=None)
@@ -554,7 +557,7 @@ try:
 				latest_version = part[1:]
 			break
 	
-	if programs["npp"].version != latest_version:
+	if AreVersionsDifferent(programs["npp"].version, latest_version):
 		PrintMessage(severity.update_available, "Notepad++ " + programs["npp"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading Notepad++...", end="")
 		
@@ -617,7 +620,7 @@ try:
 		PrintMessage(severity.error, "Could not find download url for VeraCrypt")
 		Exit(1)
 	
-	if programs["veracrypt"].version != latest_version:
+	if AreVersionsDifferent(programs["veracrypt"].version, latest_version):
 		PrintMessage(severity.update_available, "VeraCrypt " + programs["veracrypt"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading VeraCrypt...", end="")
 		setup_path = DownloadSetup(page.find_all("ul")[1].find("a")["href"], program="veracrypt")
@@ -668,18 +671,22 @@ try:
 	programs["imageglass"].version = regvalue[0]
 	print(" Version: " + programs["imageglass"].version)
 	
-	page = BeautifulSoup(DoRequest("https://imageglass.org/releases"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://imageglass.org/"), features="html.parser")
 	
-	latest_release = page.find("ul", class_="article-list").find("li")
+	latest_version = page.find("div", class_="download-version").find_all("span")
+	for node in latest_version:
+		if "." in node.text:
+			latest_version = node.text
 	
-	latest_version = latest_release.text[latest_release.text.index("Version: ") + 9:]
-	latest_version = latest_version[0:latest_version.index("\n")]
+	if type(latest_version) is not str:
+		PrintMessage(severity.warn, "Could not find version for ImageGlass")
+		raise Skip
 	
-	if programs["imageglass"].version != latest_version:
+	if AreVersionsDifferent(programs["imageglass"].version, latest_version):
 		PrintMessage(severity.update_available, "ImageGlass " + programs["imageglass"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading ImageGlass...", end="")
 		
-		page = BeautifulSoup(DoRequest(latest_release.find("a")["href"]), features="html.parser")
+		page = BeautifulSoup(DoRequest("https://imageglass.org/download"), features="html.parser")
 		x64_installer = page.find_all("div", "download-file-item")
 		last_download_page = ""
 		for element in x64_installer:
@@ -749,7 +756,7 @@ try:
 	latest_version = latest_release.text[latest_release.text.index("OpenVPN ") + 8:]
 	latest_version = latest_version[0:latest_version.index(" ")]
 	
-	if programs["openvpn"].version != latest_version:
+	if AreVersionsDifferent(programs["openvpn"].version, latest_version):
 		PrintMessage(severity.update_available, "OpenVPN " + programs["openvpn"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading OpenVPN...", end="")
 		
@@ -802,7 +809,7 @@ try:
 	
 	latest_version = page.find("dl").find_all("div")[2].find("dd").text
 	
-	if programs["qbittorrent"].version != latest_version:
+	if AreVersionsDifferent(programs["qbittorrent"].version, latest_version):
 		PrintMessage(severity.update_available, "qBittorrent " + programs["qbittorrent"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading qBittorrent...", end="")
 		setup_path = DownloadSetup(ScrapeFosshubDownloadPage(page, "qBittorrent", "5b8793a7f9ee5a5c3e97a3b2"), program="qbittorrent")
@@ -834,7 +841,7 @@ try:
 	latest_version = latest_version.split(".")
 	latest_version = latest_version[0] + "." + latest_version[1]
 	
-	if programs["hxd"].version != latest_version:
+	if AreVersionsDifferent(programs["hxd"].version, latest_version):
 		PrintMessage(severity.update_available, "HxD " + programs["hxd"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading HxD...", end="")
 		setup_path = DownloadSetup("https://mh-nexus.de/downloads/HxDSetup.zip", program="hxd")
@@ -868,7 +875,7 @@ try:
 	latest_version = latest_version[0:latest_version.index("-setup")]
 	
 	
-	if programs["processhacker"].version != latest_version:
+	if AreVersionsDifferent(programs["processhacker"].version, latest_version):
 		PrintMessage(severity.update_available, "Process Hacker " + programs["processhacker"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading Process Hacker...", end="")
 		setup_path = DownloadSetup(final_link, program="processhacker", user_agent=None)
