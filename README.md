@@ -6,19 +6,21 @@ AutoUpdate&#46;py is a python script to do this for you.
 
 ## Features
 
-For now, these 12 programs are supported :
-- Notepad++
+For now, these 14 programs are supported :
+- MKVToolNix
 - PuTTY
 - AnyDesk
-- Veracrypt
 - 7-Zip
-- HxD
+- 7-Zip-Zstandard
 - Python
-- MKVToolNix
 - VLC
+- Notepad++
+- Veracrypt
 - ImageGlass
 - OpenVPN
 - qBittorrent
+- HxD
+- Process Hacker 2
 
 
 ## How it works
