@@ -25,7 +25,7 @@ For now, these 14 programs are supported :
 
 ## How it works
 
-For each of the 12 currently suported programs, this script gets the locally installed version, then scrape the online download page of the software to retrieve the latest version.  
+For each of the 14 currently suported programs, this script gets the locally installed version, then scrape the online download page of the software to retrieve the latest version.  
 If they differ, it downloads the latest update and run it. All you have to do is clicking "Yes" when the setup asks for admin privileges.
 
 ## Intended use
