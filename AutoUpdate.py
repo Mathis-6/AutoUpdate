@@ -391,7 +391,7 @@ try:
 			
 		if final_link == "":
 			PrintMessage(severity.error, "Could not find download url for 7-Zip")
-			Exit(1)
+			raise Skip
 		
 		setup_path = DownloadSetup(final_link, program="7zip")
 		print(" Done !")
@@ -448,7 +448,7 @@ try:
 			
 		if final_link == "":
 			PrintMessage(severity.error, "Could not find download url for 7-Zip-Zstandard")
-			Exit(1)
+			raise Skip
 		
 		print(final_link)
 		setup_path = DownloadSetup(final_link, program="7zip-zstd")
@@ -511,7 +511,7 @@ try:
 	
 	if final_link == "":
 		PrintMessage(severity.error, "Could not find download button for VLC")
-		Exit(1)
+		raise Skip
 	
 	latest_version = final_link[final_link.index("/vlc/") + 5:]
 	latest_version = latest_version[0:latest_version.index("/win64/")]
@@ -577,7 +577,7 @@ try:
 		
 		if final_link == "":
 			PrintMessage(severity.error, "Could not find download url for Notepad++")
-			Exit(1)
+			raise Skip
 		
 		setup_path = DownloadSetup(final_link, program="npp")
 		print(" Done !")
@@ -618,7 +618,7 @@ try:
 	
 	if latest_version == "":
 		PrintMessage(severity.error, "Could not find download url for VeraCrypt")
-		Exit(1)
+		raise Skip
 	
 	if AreVersionsDifferent(programs["veracrypt"].version, latest_version):
 		PrintMessage(severity.update_available, "VeraCrypt " + programs["veracrypt"].version + " ==> " + latest_version)
@@ -671,39 +671,34 @@ try:
 	programs["imageglass"].version = regvalue[0]
 	print(" Version: " + programs["imageglass"].version)
 	
-	page = BeautifulSoup(DoRequest("https://imageglass.org/"), features="html.parser")
 	
-	latest_version = page.find("div", class_="download-version").find_all("span")
-	for node in latest_version:
-		if "." in node.text:
-			latest_version = node.text
-	
-	if type(latest_version) is not str:
-		PrintMessage(severity.warn, "Could not find version for ImageGlass")
+	json_data = json.loads(DoRequest("https://imageglass.org/url/update"))
+	try:
+		# Actually, i don't know how to get the local release name, so it will be the default "kobe"
+		release = json_data["releases"]["kobe"]
+		latest_version = release["version"]
+	except Exception as e:
+		PrintMessage(severity.error, str(e))
 		raise Skip
+	
 	
 	if AreVersionsDifferent(programs["imageglass"].version, latest_version):
 		PrintMessage(severity.update_available, "ImageGlass " + programs["imageglass"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading ImageGlass...", end="")
 		
-		page = BeautifulSoup(DoRequest("https://imageglass.org/download"), features="html.parser")
-		x64_installer = page.find_all("div", "download-file-item")
-		last_download_page = ""
-		for element in x64_installer:
-			
-			if "installer x64" in element.text:
-				last_download_page = element.find("a")["href"]
-				break
-			
+		download_link = ""
+		downloads = release["downloads"]
+		for download in downloads:
+			if download["architecture"] == "x64" and download["extension"] == "msi":
+				download_link = download["url"]
 		
-		if last_download_page == "":
-			PrintMessage(severity.warn, "Could not find download url for ImageGlass")
+		if download_link == "":
+			PrintMessage(severity.error, "Could not find download url for ImageGlass")
 			raise Skip
 		
-		
-		setup_path = DownloadSetup(last_download_page.replace("/download", "") + "/download", program="imageglass")
+		setup_path = DownloadSetup(download_link, program="imageglass")
 		print(" Done !")
-		os.system("\"" + setup_path + "\"")
+		os.system("\"" + setup_path + "\" /passive")
 
 
 except (FileNotFoundError, OSError):
@@ -778,12 +773,12 @@ try:
 				
 		if final_link == "":
 			PrintMessage(severity.error, "Could not find download url for OpenVPN")
-			Exit(1)
+			raise Skip
 		
 		
 		setup_path = DownloadSetup(final_link, program="openvpn")
 		print(" Done !")
-		os.system("\"" + setup_path + "\"")
+		os.system("\"" + setup_path + "\" /passive /norestart")
 
 
 	
