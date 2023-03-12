@@ -1,6 +1,5 @@
-import winreg
+import winreg, msvcrt
 import sys
-import msvcrt
 import os
 import platform
 import math
@@ -14,8 +13,14 @@ def SecureImport(module_name):
 	try:
 		globals()[module_name] = __import__(module_name)
 	except ModuleNotFoundError:
-		os.system("python -m pip install " + module_name)
-		globals()[module_name] = __import__(module_name)
+		try:
+			os.system("pip install " + module_name)
+			globals()[module_name] = __import__(module_name)
+		except Exception as e:
+			print(e)
+			msvcrt.getch()
+			exit(1)
+			
 
 
 SecureImport("requests")
@@ -65,11 +70,12 @@ programs = {
 "openvpn": type("", (), {"name": "OpenVPN", "version": "", "ext": "msi"}),
 "qbittorrent": type("", (), {"name": "qBittorrent", "version": "", "ext": "exe"}),
 "hxd": type("", (), {"name": "HxD", "version": "", "ext": "zip"}),
-"processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"})
+"processhacker": type("", (), {"name": "Process Hacker 2", "version": "", "ext": "exe"}),
+"bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.5.1"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36"
+VERSION = "1.6.0"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
 
 
 
@@ -89,7 +95,9 @@ def DoRequest(url):
 		if req.status_code != 200:
 			PrintMessage(severity.warn, "HTTP request returned code " + str(req.status_code) + ". This may be temporary or fixed in a new update.")
 			raise Skip
-		return req.content
+		
+		# Returns the downloaded page data and the last redirected url for later use
+		return type("", (), {"data": req.content, "url": req.url})
 		
 	except requests.exceptions.RequestException as e:
 		PrintMessage(severity.error, str(e))
@@ -205,7 +213,7 @@ class Skip(Exception):
 
 # Getting the online version then decide if we update or not
 PrintMessage(severity.info, "Checking for updates...", end="")
-latest_version = DoRequest("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/version").decode().rstrip()
+latest_version = DoRequest("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/version").data.decode().rstrip()
 
 if VERSION != latest_version:
 	print(" New version available: '" + latest_version + "'")
@@ -245,7 +253,7 @@ try:
 	programs["mkvtoolnix"].version = regvalue[0]
 	print(" Version: " + programs["mkvtoolnix"].version)
 	
-	page = BeautifulSoup(DoRequest("https://www.fosshub.com/MKVToolNix.html"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.fosshub.com/MKVToolNix.html").data, features="html.parser")
 	latest_version = page.find("dl").find_all("div")[2].find("dd").text
 	
 	if AreVersionsDifferent(programs["mkvtoolnix"].version, latest_version):
@@ -288,7 +296,7 @@ if path:
 		print(" Version: " + programs["putty"].version)
 		
 	
-	page = BeautifulSoup(DoRequest("https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html").data, features="html.parser")
 	
 	latest_version = page.find("title").text
 	latest_version = latest_version[latest_version.index("(") + 1:]
@@ -309,49 +317,53 @@ else:
 
 PrintMessage(severity.info, "Checking AnyDesk...", end="")
 
-path = SearchPath("anydesk")
-if path:
-	file = open(path, "rb")
-	data = file.read()
-	file.close()
-	programs["anydesk"].path = path;
-	version_prefix = b"<assemblyIdentity version=\""
-	
-	if version_prefix not in data:
-		PrintMessage(severity.error, "Unable to determine version, re-downloading it.")
-		try:
-			os.remove(path)
-		except OSError as e:
-			PrintMessage(severity.error, str(e))
+try:
+	path = SearchPath("anydesk")
+	if path:
+		file = open(path, "rb")
+		data = file.read()
+		file.close()
+		programs["anydesk"].path = path;
+		version_prefix = b"<assemblyIdentity version=\""
 		
-	
+		if version_prefix not in data:
+			PrintMessage(severity.error, "Unable to determine version, re-downloading it.")
+			try:
+				os.remove(path)
+			except OSError as e:
+				PrintMessage(severity.error, str(e))
+			
+		
+		else:
+			programs["anydesk"].version = data[data.find(version_prefix) + 27:data[data.find(version_prefix) + 27:].find(b"\"") + data.find(version_prefix) + 27].decode("utf-8")
+			print(" Version: " + programs["anydesk"].version)
+			
+		
+		page = BeautifulSoup(DoRequest("https://anydesk.com/fr/downloads/windows").data, features="html.parser")
+		
+		elements = page.find_all("div", class_="d-block")
+		latest_version = ""
+		for element in elements:
+			if element.text.startswith("v"):
+				latest_version = element.text[1:element.text.index(" ")]
+				break
+		
+		if latest_version == "":
+			PrintMessage(severity.warn, "Could not scrape AnyDesk version")
+			raise Skip
+		
+		
+		if AreVersionsDifferent(programs["anydesk"].version, latest_version):
+			PrintMessage(severity.update_available, "AnyDesk " + programs["anydesk"].version + " ==> " + latest_version)
+			PrintMessage(severity.info, "Downloading AnyDesk...", end="")
+			DownloadSetup("https://download.anydesk.com/AnyDesk.exe", program="anydesk")
+			print(" Done !")
+
 	else:
-		programs["anydesk"].version = data[data.find(version_prefix) + 27:data[data.find(version_prefix) + 27:].find(b"\"") + data.find(version_prefix) + 27].decode("utf-8")
-		print(" Version: " + programs["anydesk"].version)
-		
-	
-	page = BeautifulSoup(DoRequest("https://anydesk.com/fr/downloads/windows"), features="html.parser")
-	
-	elements = page.find_all("div", class_="d-block")
-	latest_version = ""
-	for element in elements:
-		if element.text.startswith("v"):
-			latest_version = element.text[1:element.text.index(" ")]
-			break
-	
-	if latest_version == "":
-		PrintMessage(severity.warn, "Could not scrape AnyDesk version")
-	
-	
-	if AreVersionsDifferent(programs["anydesk"].version, latest_version):
-		PrintMessage(severity.update_available, "AnyDesk " + programs["anydesk"].version + " ==> " + latest_version)
-		PrintMessage(severity.info, "Downloading AnyDesk...", end="")
-		DownloadSetup("https://download.anydesk.com/AnyDesk.exe", program="anydesk")
-		print(" Done !")
+		print(" Not found.")
 
-else:
-	print(" Not found.")
-
+except Skip:
+	pass
 
 
 
@@ -366,7 +378,7 @@ try:
 	programs["7zip"].version = regvalue[0]
 	print(" Version: " + programs["7zip"].version)
 	
-	page = BeautifulSoup(DoRequest("https://www.7-zip.org/download.html"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.7-zip.org/download.html").data, features="html.parser")
 	latest_version = ""
 	
 	elements = page.find_all("b")
@@ -417,7 +429,8 @@ try:
 	programs["7zip-zstd"].version = regvalue[0][0:regvalue[0].index(" ")]
 	print(" Version: " + programs["7zip-zstd"].version)
 	
-	page = BeautifulSoup(DoRequest("https://github.com/mcmilk/7-Zip-zstd/releases/latest"), features="html.parser")
+	request = DoRequest("https://github.com/mcmilk/7-Zip-zstd/releases/latest")
+	page = BeautifulSoup(request.data, features="html.parser")
 	latest_version = ""
 	
 	release_title = page.select_one(".d-inline.mr-3").text.split()
@@ -432,9 +445,10 @@ try:
 		PrintMessage(severity.update_available, "7-Zip-Zstandard " + programs["7zip-zstd"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading 7-Zip-Zstandard...", end="")
 		
+		page = BeautifulSoup(DoRequest(request.url.replace("/tag/", "/expanded_assets/")).data, features="html.parser")
+		
 		final_link = ""
-		assets_list = page.select_one("div.Box.Box--condensed.mt-3")
-		assets_list = assets_list.find_all("a")
+		assets_list = page.find_all("a")
 		
 		for link in assets_list:
 			if link["href"].endswith(".exe") and "x64" in link["href"] and latest_version in link["href"]:
@@ -450,7 +464,7 @@ try:
 			PrintMessage(severity.error, "Could not find download url for 7-Zip-Zstandard")
 			raise Skip
 		
-		print(final_link)
+		
 		setup_path = DownloadSetup(final_link, program="7zip-zstd")
 		print(" Done !")
 		os.system("\"" + setup_path + "\"")
@@ -463,7 +477,6 @@ except Skip:
 
 
 
-
 ########## PYTHON ##########
 
 PrintMessage(severity.info, "Checking Python...", end="")
@@ -471,7 +484,7 @@ PrintMessage(severity.info, "Checking Python...", end="")
 programs["python"].version = platform.python_version()
 print(" Version: " + programs["python"].version)
 
-page = BeautifulSoup(DoRequest("https://www.python.org/downloads/"), features="html.parser")
+page = BeautifulSoup(DoRequest("https://www.python.org/downloads/").data, features="html.parser")
 download_button = page.find("div", class_="download-os-windows").find("a")
 
 latest_version = download_button.text[download_button.text.index("Download Python ") + 16:]
@@ -496,25 +509,27 @@ try:
 	programs["vlc"].version = regvalue[0]
 	print(" Version: " + programs["vlc"].version)
 	
-	page = BeautifulSoup(DoRequest("https://www.videolan.org/vlc/"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.videolan.org/vlc/").data, features="html.parser")
 	
 	links = page.select_one("ul.dropdown-menu.dropdown-default.platform-icons").find_all("a")
 	final_link = ""
 	
 	for link in links:
 		
-		if "win64" in link["href"]:
+		if "win64" in link["href"] and link["href"].endswith(".exe"):
 			final_link = link["href"]
 			if final_link.startswith("//"):
 				final_link = "https:" + final_link
+			break
 		
 	
 	if final_link == "":
 		PrintMessage(severity.error, "Could not find download button for VLC")
 		raise Skip
 	
+	
 	latest_version = final_link[final_link.index("/vlc/") + 5:]
-	latest_version = latest_version[0:latest_version.index("/win64/")]
+	latest_version = latest_version[0:latest_version.index("/")]
 	
 	if AreVersionsDifferent(programs["vlc"].version, latest_version):
 		PrintMessage(severity.update_available, "VLC " + programs["vlc"].version + " ==> " + latest_version)
@@ -544,7 +559,7 @@ try:
 	programs["npp"].version = regvalue[0]
 	print(" Version: " + programs["npp"].version)
 	
-	page = BeautifulSoup(DoRequest("https://notepad-plus-plus.org/downloads/"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://notepad-plus-plus.org/downloads/").data, features="html.parser")
 	
 	href_to_latest = page.find("ul", class_="patterns-list").find("a")
 	
@@ -561,7 +576,7 @@ try:
 		PrintMessage(severity.update_available, "Notepad++ " + programs["npp"].version + " ==> " + latest_version)
 		PrintMessage(severity.info, "Downloading Notepad++...", end="")
 		
-		page = BeautifulSoup(DoRequest(href_to_latest["href"]), features="html.parser")
+		page = BeautifulSoup(DoRequest(href_to_latest["href"]).data, features="html.parser")
 		
 		links = page.find("main", id="main").find_all("a")
 		final_link = ""
@@ -604,7 +619,7 @@ try:
 	programs["veracrypt"].version = regvalue[0]
 	print(" Version: " + programs["veracrypt"].version)
 	
-	page = BeautifulSoup(DoRequest("https://www.veracrypt.fr/en/Downloads.html"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.veracrypt.fr/en/Downloads.html").data, features="html.parser")
 	
 	links = page.find_all("a")
 	latest_version = ""
@@ -672,7 +687,7 @@ try:
 	print(" Version: " + programs["imageglass"].version)
 	
 	
-	json_data = json.loads(DoRequest("https://imageglass.org/url/update"))
+	json_data = json.loads(DoRequest("https://imageglass.org/url/update").data)
 	try:
 		# Actually, i don't know how to get the local release name, so it will be the default "kobe"
 		release = json_data["releases"]["kobe"]
@@ -744,7 +759,7 @@ try:
 	regkey.Close()
 	print(" Version: " + programs["openvpn"].version)
 	
-	page = BeautifulSoup(DoRequest("https://openvpn.net/community-downloads/"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://openvpn.net/community-downloads/").data, features="html.parser")
 	
 	latest_release = page.find("div", class_="card")
 	
@@ -800,7 +815,7 @@ try:
 	programs["qbittorrent"].version = regvalue[0]
 	print(" Version: " + programs["qbittorrent"].version)
 	
-	page = BeautifulSoup(DoRequest("https://www.fosshub.com/qBittorrent.html"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://www.fosshub.com/qBittorrent.html").data, features="html.parser")
 	
 	latest_version = page.find("dl").find_all("div")[2].find("dd").text
 	
@@ -830,7 +845,7 @@ try:
 	programs["hxd"].version = regvalue[0]
 	print(" Version: " + programs["hxd"].version)
 	
-	page = BeautifulSoup(DoRequest("https://mh-nexus.de/en/downloads.php?product=HxD20"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://mh-nexus.de/en/downloads.php?product=HxD20").data, features="html.parser")
 	
 	latest_version = page.find("tbody").find_all("tr")[1].find_all("td")[2].text.strip()
 	latest_version = latest_version.split(".")
@@ -863,7 +878,7 @@ try:
 	programs["processhacker"].version = programs["processhacker"].version[0:programs["processhacker"].version.index(" ")]
 	print(" Version: " + programs["processhacker"].version)
 	
-	page = BeautifulSoup(DoRequest("https://processhacker.sourceforge.io/downloads.php"), features="html.parser")
+	page = BeautifulSoup(DoRequest("https://processhacker.sourceforge.io/downloads.php").data, features="html.parser")
 	
 	final_link = page.find("a", class_="text-left")["href"]
 	latest_version = final_link[final_link.index("/processhacker-") + 15:]
@@ -883,6 +898,44 @@ except (FileNotFoundError, OSError):
 except Skip:
 	pass
 
+
+
+########## BULK RENAME UTILITY ##########
+
+PrintMessage(severity.info, "Checking Bulk Rename Utility...", end="")
+
+try:
+	regkey = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Bulk Rename Utility Installation_is1")
+	regvalue = winreg.QueryValueEx(regkey, "DisplayVersion")
+	regkey.Close()
+	programs["bru"].version = regvalue[0]
+	print(" Version: " + programs["bru"].version)
+	
+	page = BeautifulSoup(DoRequest("https://www.bulkrenameutility.co.uk/Version.php").data, features="html.parser")
+	
+	latest_version = page.find("div", class_=["w-lg-50", "w-md-75"]).find_all("strong")
+	for child in latest_version:
+		text = child.text.strip()
+		if text.replace(".", "0").isnumeric():
+			latest_version = text
+	
+	if type(latest_version) is not str:
+		PrintMessage(severity.warn, "Could not scrape Bulk Rename Utility version")
+		raise Skip
+	
+	
+	if AreVersionsDifferent(programs["bru"].version, latest_version):
+		PrintMessage(severity.update_available, "Bulk Rename Utility " + programs["bru"].version + " ==> " + latest_version)
+		PrintMessage(severity.info, "Downloading Bulk Rename Utility...", end="")
+		setup_path = DownloadSetup("https://www.bulkrenameutility.co.uk/Downloads/BRU_setup.exe", program="bru", user_agent=None)
+		print(" Done !")
+		os.system("\"" + setup_path + "\"")
+	
+
+except (FileNotFoundError, OSError):
+	print(" Not found.")
+except Skip:
+	pass
 
 
 
