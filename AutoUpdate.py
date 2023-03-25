@@ -75,7 +75,7 @@ programs = {
 }
 
 VERSION = "1.6.0"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 
 
@@ -204,6 +204,9 @@ def AreVersionsDifferent(v1, v2):
 	v2_dots = v2.count(".")
 	if v1_dots > v2_dots:
 		v1 = v1[0:len(v2)]
+	elif v2_dots > v1_dots:
+		v2 = v2[0:len(v1)]
+	
 	return v1 != v2
 
 
