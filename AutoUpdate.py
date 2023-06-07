@@ -6,6 +6,7 @@ import math
 import time
 import json
 import hashlib
+import re
 
 
 # If the module is not found, download it, install it and import it
@@ -29,6 +30,7 @@ if os.name != "nt":
 SecureImport("requests")
 SecureImport("colorama")
 SecureImport("bs4")
+SecureImport("natsort")
 
 BeautifulSoup = bs4.BeautifulSoup
 
@@ -74,7 +76,7 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.7.0"
+VERSION = "1.7.1"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 
@@ -505,18 +507,44 @@ except Skip:
 
 PrintMessage(log_severity.info, "Checking Python...", end="")
 
-programs["python"].version = platform.python_version()
+programs["python"].version = re.match(r"[0-9]+\.[0-9]+\.[0-9]+", platform.python_version())[0]
 print(" Version: " + programs["python"].version)
 
-page = BeautifulSoup(DoRequest("https://www.python.org/downloads/").data, features="html.parser")
-download_button = page.find("div", class_="download-os-windows").find("a")
+page = BeautifulSoup(DoRequest("https://www.python.org/ftp/python/").data, features="html.parser")
+links = page.find_all("a")
 
-latest_version = download_button.text[download_button.text.index("Download Python ") + 16:]
+versions = []
+	
+for link in links:
+	url = link["href"].replace("/", "");
+	if "." in url and url.replace(".", "").isnumeric():
+		version_number = url
+		versions.append(version_number)
+		#versions.append({"int": int(version_number.replace(".", "")), "version": version_number})
+	
+	
+#latest_version = sorted(versions, key=lambda d: d["int"])[-1]["version"]
+latest_version = natsort.natsorted(versions)
+latest_version = latest_version[-1]
 
 if AreVersionsDifferent(programs["python"].version, latest_version):
 	PrintMessage(log_severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
 	PrintMessage(log_severity.info, "Downloading Python...", end="")
-	setup_path = DownloadSetup(download_button["href"], program="python")
+	
+	repo_url = "https://www.python.org/ftp/python/" + latest_version + "/"
+	page = BeautifulSoup(DoRequest(repo_url).data, features="html.parser")
+	links = page.find_all("a")
+	download_link = ""
+	for link in links:
+		if link["href"].endswith(".exe") and "amd64" in link["href"]:
+			download_link = repo_url + link["href"]
+			break
+	
+	if download_link == "":
+		PrintMessage(log_severity.error, "Could not find download link for python")
+		raise Skip
+	
+	setup_path = DownloadSetup(download_link, program="python")
 	print(" Done !")
 	os.system(setup_path + " /passive PrependPath=1 Include_doc=0 Include_tcltk=0 Include_test=0")	# These parameters will trigger auto installation mode
 
