@@ -76,7 +76,7 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.7.1"
+VERSION = "1.8.0"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 
@@ -262,10 +262,10 @@ try:
 		if element["href"].startswith("/windows/releases/"):
 			version_number = element["href"][18:-1]
 			if version_number.replace(".", "").isnumeric():
-				versions.append({"int": int(version_number.replace(".", "")), "version": version_number})
+				versions.append(version_number)
 	
 	
-	latest_version = sorted(versions, key=lambda d: d["int"])[-1]["version"]
+	latest_version = natsort.natsorted(versions)[-1]
 	
 	if AreVersionsDifferent(programs["mkvtoolnix"].version, latest_version):
 		PrintMessage(log_severity.update_available, "MKVToolNix " + programs["mkvtoolnix"].version + " ==> " + latest_version)
@@ -306,7 +306,7 @@ if path:
 	file = open(path, "rb")
 	data = file.read()
 	file.close()
-	programs["putty"].path = path;
+	programs["putty"].path = path
 	version_prefix = b"Release "
 	
 	if version_prefix not in data:
@@ -324,9 +324,13 @@ if path:
 	
 	page = BeautifulSoup(DoRequest("https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html").data, features="html.parser")
 	
-	latest_version = page.find("title").text
-	latest_version = latest_version[latest_version.index("(") + 1:]
-	latest_version = latest_version[0:latest_version.index(")")]
+	latest_version = re.search(r"[\d\.]+", page.find("title").text)
+
+	if latest_version == None:
+		PrintMessage(log_severity.error, "Could not find online version of Putty")
+		raise Skip
+	
+	latest_version = latest_version.group(0)
 	
 	if AreVersionsDifferent(programs["putty"].version, latest_version):
 		PrintMessage(log_severity.update_available, "PuTTY " + programs["putty"].version + " ==> " + latest_version)
@@ -349,7 +353,7 @@ try:
 		file = open(path, "rb")
 		data = file.read()
 		file.close()
-		programs["anydesk"].path = path;
+		programs["anydesk"].path = path
 		version_prefix = b"<assemblyIdentity version=\""
 		
 		if version_prefix not in data:
@@ -370,8 +374,9 @@ try:
 		elements = page.find_all("div", class_="d-block")
 		latest_version = ""
 		for element in elements:
-			if element.text.startswith("v"):
-				latest_version = element.text[1:element.text.index(" ")]
+			regex_match = re.search(r"(?<=v|V)[\d\.]+", element.text)
+			if regex_match:
+				latest_version = regex_match.group(0)
 				break
 		
 		if latest_version == "":
@@ -409,9 +414,9 @@ try:
 	
 	elements = page.find_all("b")
 	for element in elements:
-		if element.text.startswith("Download 7-Zip "):
-			latest_version = element.text[element.text.index("Download 7-Zip ") + 15:]
-			latest_version = latest_version[0:latest_version.index(" ")]
+		regex_match = re.search(r"(?<=Download 7-Zip )[\d\.]+", element.text)
+		if regex_match:
+			latest_version = regex_match.group(0)
 			break
 	
 	if AreVersionsDifferent(programs["7zip"].version, latest_version):
@@ -516,14 +521,14 @@ links = page.find_all("a")
 versions = []
 	
 for link in links:
-	url = link["href"].replace("/", "");
+	url = link["href"].replace("/", "")
 	if "." in url and url.replace(".", "").isnumeric():
 		version_number = url
 		versions.append(version_number)
-		#versions.append({"int": int(version_number.replace(".", "")), "version": version_number})
+		
 	
 	
-#latest_version = sorted(versions, key=lambda d: d["int"])[-1]["version"]
+
 latest_version = natsort.natsorted(versions)
 latest_version = latest_version[-1]
 
@@ -615,14 +620,12 @@ try:
 	
 	href_to_latest = page.find("ul", class_="patterns-list").find("a")
 	
-	latest_version = href_to_latest.text.split()
-	for part in latest_version:
-		if "." in part:
-			
-			latest_version = part
-			if part.startswith("v"):
-				latest_version = part[1:]
-			break
+	latest_version = re.search(r"(?<=v|V)[\d\.]+", href_to_latest.text)
+	if latest_version == None:
+		PrintMessage(log_severity.error, "Could not find latest version for Notepad++")
+		raise Skip
+	
+	latest_version = latest_version[0]
 	
 	if AreVersionsDifferent(programs["npp"].version, latest_version):
 		PrintMessage(log_severity.update_available, "Notepad++ " + programs["npp"].version + " ==> " + latest_version)
@@ -676,15 +679,14 @@ try:
 	links = page.find_all("a")
 	latest_version = ""
 	for link in links:
-		text = link.text.strip()
+		regex_match = re.search(r"(?<=VeraCrypt Setup )[\d\.]+(?=\.exe)", link.text)
 		
-		if text.startswith("VeraCrypt Setup "):
-			latest_version = text[16:]
-			latest_version = latest_version[0:latest_version.index(".exe")]
+		if regex_match:
+			latest_version = regex_match.group(0)
 			break
 	
 	if latest_version == "":
-		PrintMessage(log_severity.error, "Could not find download url for VeraCrypt")
+		PrintMessage(log_severity.error, "Could not find online version for VeraCrypt")
 		raise Skip
 	
 	if AreVersionsDifferent(programs["veracrypt"].version, latest_version):
@@ -750,6 +752,11 @@ try:
 	
 	
 	if AreVersionsDifferent(programs["imageglass"].version, latest_version):
+
+		if "downloads" not in release:
+			PrintMessage(log_severity.error, "Could not find download link for Imageglass version " + latest_version)
+			raise Skip
+
 		PrintMessage(log_severity.update_available, "ImageGlass " + programs["imageglass"].version + " ==> " + latest_version)
 		PrintMessage(log_severity.info, "Downloading ImageGlass...", end="")
 		
@@ -815,8 +822,13 @@ try:
 	
 	latest_release = page.find("div", class_="card")
 	
-	latest_version = latest_release.text[latest_release.text.index("OpenVPN ") + 8:]
-	latest_version = latest_version[0:latest_version.index(" ")]
+	latest_version = re.search(r"[\d\.]+", latest_release.text)
+
+	if latest_version == None:
+		PrintMessage(log_severity.error, "Could not find latest online version of OpenVPN")
+		raise Skip
+	
+	latest_version = latest_version.group(0)
 	
 	if AreVersionsDifferent(programs["openvpn"].version, latest_version):
 		PrintMessage(log_severity.update_available, "OpenVPN " + programs["openvpn"].version + " ==> " + latest_version)
@@ -933,9 +945,13 @@ try:
 	page = BeautifulSoup(DoRequest("https://processhacker.sourceforge.io/downloads.php").data, features="html.parser")
 	
 	final_link = page.find("a", class_="text-left")["href"]
-	latest_version = final_link[final_link.index("/processhacker-") + 15:]
-	latest_version = latest_version[0:latest_version.index("-setup")]
+	latest_version = re.search(r"(?<=\/processhacker\-)[\d\.]+", final_link)
 	
+	if latest_version == None:
+		PrintMessage(log_severity.error, "Could not find version for processhacker")
+		raise Skip
+	
+	latest_version = latest_version[0]
 	
 	if AreVersionsDifferent(programs["processhacker"].version, latest_version):
 		PrintMessage(log_severity.update_available, "Process Hacker " + programs["processhacker"].version + " ==> " + latest_version)
