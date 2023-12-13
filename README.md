@@ -33,8 +33,6 @@ If they differ, it downloads the latest update and run it. All you have to do is
 To automatically run it when you login, place this script in this directory :
 ``%appdata%\Microsoft\Windows\Start Menu\Programs\Startup``
 
-If you're not here to code, download AutoUpdate.**pyc**. It starts faster.
-
 ## License
 
 MIT
