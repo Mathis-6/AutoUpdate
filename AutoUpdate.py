@@ -202,14 +202,16 @@ def SearchPath(program):
 
 
 def AreVersionsDifferent(v1, v2):
-	v1_dots = v1.count(".")
-	v2_dots = v2.count(".")
-	if v1_dots > v2_dots:
-		v1 = v1[0:len(v2)]
-	elif v2_dots > v1_dots:
-		v2 = v2[0:len(v1)]
-	
-	return v1 != v2
+	v1 = v1.split(".")
+	v2 = v2.split(".")
+	longuest_version = len(v1 if v1 > v2 else v2)
+	for i in range(longuest_version):
+		
+		# For each number in the version string, check if it's different from the other
+		if int("0" if i >= len(v1) else v1[i]) != int("0" if i >= len(v2) else v2[i]):
+			return True
+
+	return False
 
 
 class Skip(Exception):
