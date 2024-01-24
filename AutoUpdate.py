@@ -76,7 +76,7 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.0"
+VERSION = "1.8.1"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 
 
