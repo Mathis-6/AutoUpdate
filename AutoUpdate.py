@@ -7,6 +7,7 @@ import time
 import json
 import hashlib
 import re
+import urllib.parse
 
 
 # If the module is not found, download it, install it and import it
@@ -76,8 +77,8 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.1"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+VERSION = "1.8.2"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
 
 
@@ -514,25 +515,30 @@ except Skip:
 
 PrintMessage(log_severity.info, "Checking Python...", end="")
 
-programs["python"].version = re.match(r"[0-9]+\.[0-9]+\.[0-9]+", platform.python_version())[0]
+programs["python"].version = re.match(r"\d+\.\d+\.\d+", platform.python_version())[0]
 print(" Version: " + programs["python"].version)
 
-page = BeautifulSoup(DoRequest("https://www.python.org/ftp/python/").data, features="html.parser")
-links = page.find_all("a")
+page = BeautifulSoup(DoRequest("https://www.python.org/downloads/windows/").data, features="html.parser")
+links = page.select_one(".main-content").find_all("a")
+latest_version = None
 
-versions = []
-	
 for link in links:
-	url = link["href"].replace("/", "")
-	if "." in url and url.replace(".", "").isnumeric():
-		version_number = url
-		versions.append(version_number)
+	if link.text.startswith("Latest "):
 		
-	
-	
+		latest_version = re.search(r"\d+\.\d+\.\d+", link.text)
+		if latest_version == None:
+			PrintMessage(log_severity.error, "Could not find the online latest version of python")
+			raise Skip
+		
+		links = None
+		break
 
-latest_version = natsort.natsorted(versions)
-latest_version = latest_version[-1]
+if latest_version == None:
+	PrintMessage(log_severity.error, "Could not find download link for python")
+	raise Skip
+
+latest_version = latest_version[0]
+
 
 if AreVersionsDifferent(programs["python"].version, latest_version):
 	PrintMessage(log_severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
@@ -543,7 +549,7 @@ if AreVersionsDifferent(programs["python"].version, latest_version):
 	links = page.find_all("a")
 	download_link = ""
 	for link in links:
-		if link["href"].endswith(".exe") and "amd64" in link["href"]:
+		if "amd64" in link["href"] and link["href"].endswith(".exe"):
 			download_link = repo_url + link["href"]
 			break
 	
