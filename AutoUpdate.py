@@ -74,7 +74,7 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.3"
+VERSION = "1.8.4"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 
@@ -735,9 +735,8 @@ try:
 			break
 		subkey.Close()
 		i += 1
-		
-		
-		
+	
+	
 	if not regvalue:
 		raise FileNotFoundError
 	
@@ -746,36 +745,41 @@ try:
 	print(" Version: " + programs["imageglass"].version)
 	
 	
-	json_data = json.loads(do_request("https://imageglass.org/url/update").data)
-	try:
-		# Actually, i don't know how to get the local release name, so it will be the default "kobe"
-		release = json_data["releases"]["kobe"]
-		latest_version = release["version"]
-	except Exception as e:
-		print_message(log_severity.error, str(e))
-		raise Skip
+	request = do_request("https://github.com/d2phap/ImageGlass/releases/latest")
+	page = BeautifulSoup(request.data, features="html.parser")
+	latest_version = ""
 	
+	release_title = page.select_one(".d-inline.mr-3").text.split()
+	for part in release_title:
+		if "." in part and part.replace(".", "0").isnumeric():
+			latest_version = part
+			break
 	
 	if are_versions_different(programs["imageglass"].version, latest_version):
-
-		if "downloads" not in release:
-			print_message(log_severity.error, "Could not find download link for Imageglass version " + latest_version)
-			raise Skip
-
 		print_message(log_severity.update_available, "ImageGlass " + programs["imageglass"].version + " ==> " + latest_version)
 		print_message(log_severity.info, "Downloading ImageGlass...", end="")
 		
-		download_link = ""
-		downloads = release["downloads"]
-		for download in downloads:
-			if download["architecture"] == "x64" and download["extension"] == "msi":
-				download_link = download["url"]
+		page = BeautifulSoup(do_request(request.url.replace("/tag/", "/expanded_assets/")).data, features="html.parser")
 		
-		if download_link == "":
+		final_link = ""
+		assets_list = page.find_all("a")
+		
+		for link in assets_list:
+			if link["href"].endswith(".msi") and "x64" in link["href"] and latest_version in link["href"]:
+				final_link = link["href"]
+				if final_link.startswith("//"):
+					final_link = "https:" + final_link
+				elif final_link.startswith("/"):
+					final_link = "https://github.com" + final_link
+				
+				break
+		
+		if final_link == "":
 			print_message(log_severity.error, "Could not find download url for ImageGlass")
 			raise Skip
 		
-		setup_path = download_setup_file(download_link, program="imageglass")
+		
+		setup_path = download_setup_file(final_link, program="imageglass")
 		print(" Done !")
 		os.system("\"" + setup_path + "\" /passive")
 
