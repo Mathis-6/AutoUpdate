@@ -7,16 +7,16 @@ import hashlib
 import re
 
 
-# If the module is not found, download it, install it and import it
-def secure_import_module(module_name):
+# If the module is not installed, install it and import it instead of throwing an exception
+def secure_import_module(module_name: str) -> None:
 	try:
 		globals()[module_name] = __import__(module_name)
 	except ModuleNotFoundError:
 		try:
 			os.system("pip install " + module_name)
 			globals()[module_name] = __import__(module_name)
-		except Exception as e:
-			print(e)
+		except Exception as error:
+			print(error)
 			msvcrt.getch()
 			exit(1)
 			
@@ -74,37 +74,37 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.4"
+VERSION = "1.8.5"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 
 
-def app_exit(code):
+def app_exit(code: int) -> None:
 	print("Press any key to close this window...")
 	msvcrt.getch()
 	exit(code)
 
-def print_message(severity, message, end="\n"):
+def print_message(severity: int, message: str, end: str = "\n") -> None:
 	print("[" + colors[severity].color + colors[severity].text + "\033[0m] " + message, end=end)
 
 
 
-def do_request(url, request_method="get", body=""):
+def do_request(url: str, request_method: str = "get", body: str = "") -> type:
 	try:
 		make_request = getattr(requests, request_method)
 		req = make_request(url, headers={ "user-agent": USER_AGENT }, allow_redirects=True, data=body)
 		if req.status_code != 200:
-			print_message(log_severity.warn, "HTTP request returned code " + str(req.status_code) + ". This may be temporary or fixed in a new update.")
+			print_message(log_severity.warn, f"HTTP request returned code {req.status_code}. This may be temporary or fixed in a new update.")
 			raise Skip
 		
 		# Returns the downloaded page data and the last redirected url for later use
 		return type("", (), {"data": req.content, "url": req.url})
 		
-	except Exception as e:
-		print_message(log_severity.error, str(e))
+	except Exception as error:
+		print_message(log_severity.error, str(error))
 
 
-def scrape_fosshub_download_page(page, project_name, project_id):
+def scrape_fosshub_download_page(page: BeautifulSoup, project_name: str, project_id: str) -> str:
 	
 	dl = page.find_all("dl")
 	data_file = ""
@@ -140,8 +140,8 @@ def scrape_fosshub_download_page(page, project_name, project_id):
 	try:
 		req = requests.post("https://api.fosshub.com/download/", headers={ "user-agent": USER_AGENT, "Content-Type": "application/json" }, data=post_data)
 	
-	except Exception as e:
-		print_message(log_severity.error, str(e))
+	except Exception as error:
+		print_message(log_severity.error, str(error))
 		app_exit(1)
 	
 	
@@ -149,15 +149,15 @@ def scrape_fosshub_download_page(page, project_name, project_id):
 	json_data = json.loads(req.content)
 	try:
 		json_data = json_data["data"]["url"]
-	except Exception as e:
-		print_message(log_severity.error, str(e))
+	except Exception as error:
+		print_message(log_severity.error, str(error))
 		app_exit(1)
 	
 	return json_data
 
 
 
-def download_file(url, path="", user_agent=USER_AGENT):
+def download_file(url: str, path: str = "", user_agent: str = USER_AGENT) -> str:
 	
 	headers = {}
 	if user_agent:
@@ -174,12 +174,12 @@ def download_file(url, path="", user_agent=USER_AGENT):
 		file.close()
 		return path
 		
-	except Exception as e:
-		print_message(log_severity.error, str(e))
+	except Exception as error:
+		print_message(log_severity.error, str(error))
 		app_exit(1)
 
 
-def download_setup_file(url, program, user_agent=USER_AGENT):
+def download_setup_file(url: str, program: str, user_agent: str = USER_AGENT) -> str:
 	
 	if hasattr(programs[program], "path") and programs[program].path != "":
 		path = programs[program].path
@@ -189,7 +189,7 @@ def download_setup_file(url, program, user_agent=USER_AGENT):
 	return download_file(url, path=path, user_agent=user_agent)
 
 
-def search_file_in_path(program):
+def search_file_in_path(program: str) -> str|bool:
 	paths = os.environ["path"].split(";")
 	for path in paths:
 		path = path + ("" if path.endswith("\\") else "\\") + program + ".exe"
@@ -199,7 +199,7 @@ def search_file_in_path(program):
 	return False
 
 
-def are_versions_different(v1, v2):
+def are_versions_different(v1: str, v2: str) -> bool:
 	v1 = v1.split(".")
 	v2 = v2.split(".")
 	longuest_version = len(v1 if v1 > v2 else v2)
@@ -313,8 +313,8 @@ if path:
 		print_message(log_severity.error, "Unable to determine version, re-downloading it.")
 		try:
 			os.remove(path)
-		except OSError as e:
-			print_message(log_severity.error, str(e))
+		except OSError as error:
+			print_message(log_severity.error, str(error))
 		
 	
 	else:
@@ -360,8 +360,8 @@ try:
 			print_message(log_severity.error, "Unable to determine version, re-downloading it.")
 			try:
 				os.remove(path)
-			except OSError as e:
-				print_message(log_severity.error, str(e))
+			except OSError as error:
+				print_message(log_severity.error, str(error))
 			
 		
 		else:
