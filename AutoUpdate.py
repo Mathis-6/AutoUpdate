@@ -74,8 +74,8 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.5"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+VERSION = "1.8.6"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 
 
 
@@ -688,6 +688,7 @@ try:
 		
 		if regex_match:
 			latest_version = regex_match.group(0)
+			latest_download_link = link["href"]
 			break
 	
 	if latest_version == "":
@@ -697,7 +698,7 @@ try:
 	if are_versions_different(programs["veracrypt"].version, latest_version):
 		print_message(log_severity.update_available, "VeraCrypt " + programs["veracrypt"].version + " ==> " + latest_version)
 		print_message(log_severity.info, "Downloading VeraCrypt...", end="")
-		setup_path = download_setup_file(page.find_all("ul")[1].find("a")["href"], program="veracrypt")
+		setup_path = download_setup_file(latest_download_link, program="veracrypt")
 		print(" Done !")
 		os.system("\"" + setup_path + "\"")
 	
