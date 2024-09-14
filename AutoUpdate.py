@@ -7,6 +7,11 @@ import hashlib
 import re
 
 
+if os.name != "nt":
+	print("[\x1B[31mERROR\033[0m] This script is only available for Windows.")
+	exit(1)
+
+
 # If the module is not installed, install it and import it instead of throwing an exception
 def secure_import_module(module_name: str) -> None:
 	try:
@@ -21,10 +26,6 @@ def secure_import_module(module_name: str) -> None:
 			exit(1)
 			
 
-if os.name != "nt":
-	print("[\x1B[31mERROR\033[0m] This script is only available for Windows.")
-	exit(1)
-
 secure_import_module("requests")
 secure_import_module("colorama")
 secure_import_module("bs4")
@@ -34,7 +35,6 @@ BeautifulSoup = bs4.BeautifulSoup
 
 
 colorama.init()
-
 
 
 
@@ -74,7 +74,7 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.6"
+VERSION = "1.8.7"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 
 
@@ -953,9 +953,13 @@ try:
 	print(" Version: " + programs["processhacker"].version)
 	
 	page = BeautifulSoup(do_request("https://processhacker.sourceforge.io/downloads.php").data, features="html.parser")
-	
-	final_link = page.find("a", class_="text-left")["href"]
-	latest_version = re.search(r"(?<=\/processhacker\-)[\d\.]+", final_link)
+	links = page.find_all("a", class_="text-left")
+
+	for link in links:
+		latest_version = re.search(r"(?<=\/processhacker\-)[\d\.]+", link["href"])
+		if latest_version:
+			final_link = link["href"]
+			break
 	
 	if latest_version == None:
 		print_message(log_severity.error, "Could not find version for processhacker")
