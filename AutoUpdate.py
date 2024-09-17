@@ -85,7 +85,7 @@ def app_exit(code: int) -> None:
 	exit(code)
 
 def print_message(severity: int, message: str, end: str = "\n") -> None:
-	print("[" + colors[severity].color + colors[severity].text + "\033[0m] " + message, end=end)
+	print("[" + colors[severity].color + colors[severity].text + "\033[0m] " + message, end=end, flush=True)
 
 
 
