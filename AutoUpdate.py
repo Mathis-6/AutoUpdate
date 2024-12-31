@@ -74,8 +74,8 @@ programs = {
 "bru": type("", (), {"name": "Bulk Rename Utility", "version": "", "ext": "exe"})
 }
 
-VERSION = "1.8.7"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+VERSION = "1.8.8"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 
 
@@ -85,7 +85,7 @@ def app_exit(code: int) -> None:
 	exit(code)
 
 def print_message(severity: int, message: str, end: str = "\n") -> None:
-	print("[" + colors[severity].color + colors[severity].text + "\033[0m] " + message, end=end, flush=True)
+	print("[" + colors[severity].color + colors[severity].text + "\033[0m] " + message, end=end)
 
 
 
@@ -292,7 +292,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -393,7 +393,7 @@ try:
 	else:
 		print(" Not found.")
 
-except Skip:
+except:
 	pass
 
 
@@ -443,7 +443,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -503,7 +503,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -604,7 +604,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -662,7 +662,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -705,7 +705,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -787,7 +787,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -873,7 +873,7 @@ try:
 	
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -903,7 +903,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -935,7 +935,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -977,7 +977,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
@@ -1016,7 +1016,7 @@ try:
 
 except (FileNotFoundError, OSError):
 	print(" Not found.")
-except Skip:
+except:
 	pass
 
 
