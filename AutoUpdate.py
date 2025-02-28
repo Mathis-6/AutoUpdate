@@ -954,6 +954,7 @@ try:
 	
 	page = BeautifulSoup(do_request("https://processhacker.sourceforge.io/downloads.php").data, features="html.parser")
 	links = page.find_all("a", class_="text-left")
+	final_link = None
 
 	for link in links:
 		latest_version = re.search(r"(?<=\/processhacker\-)[\d\.]+", link["href"])
@@ -961,7 +962,7 @@ try:
 			final_link = link["href"]
 			break
 	
-	if latest_version == None:
+	if final_link is None:
 		print_message(log_severity.error, "Could not find version for processhacker")
 		raise Skip
 	
