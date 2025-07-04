@@ -512,52 +512,55 @@ except:
 
 print_message(log_severity.info, "Checking Python...", end="")
 
-programs["python"].version = re.match(r"\d+\.\d+\.\d+", platform.python_version())[0]
-print(" Version: " + programs["python"].version)
+try:
+	programs["python"].version = re.match(r"\d+\.\d+\.\d+", platform.python_version())[0]
+	print(" Version: " + programs["python"].version)
 
-page = BeautifulSoup(do_request("https://www.python.org/downloads/windows/").data, features="html.parser")
-links = page.select_one(".main-content").find_all("a")
-latest_version = None
+	page = BeautifulSoup(do_request("https://www.python.org/downloads/windows/").data, features="html.parser")
+	links = page.select_one(".main-content").find_all("a")
+	latest_version = None
 
-for link in links:
-	if link.text.startswith("Latest "):
-		
-		latest_version = re.search(r"\d+\.\d+\.\d+", link.text)
-		if latest_version == None:
-			print_message(log_severity.error, "Could not find the online latest version of python")
-			raise Skip
-		
-		links = None
-		break
-
-if latest_version == None:
-	print_message(log_severity.error, "Could not find download link for python")
-	raise Skip
-
-latest_version = latest_version[0]
-
-
-if are_versions_different(programs["python"].version, latest_version):
-	print_message(log_severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
-	print_message(log_severity.info, "Downloading Python...", end="")
-	
-	repo_url = "https://www.python.org/ftp/python/" + latest_version + "/"
-	page = BeautifulSoup(do_request(repo_url).data, features="html.parser")
-	links = page.find_all("a")
-	download_link = ""
 	for link in links:
-		if "amd64" in link["href"] and link["href"].endswith(".exe"):
-			download_link = repo_url + link["href"]
+		if link.text.startswith("Latest "):
+			
+			latest_version = re.search(r"\d+\.\d+\.\d+", link.text)
+			if latest_version == None:
+				print_message(log_severity.error, "Could not find the online latest version of python")
+				raise Skip
+			
+			links = None
 			break
-	
-	if download_link == "":
+
+	if latest_version == None:
 		print_message(log_severity.error, "Could not find download link for python")
 		raise Skip
-	
-	setup_path = download_setup_file(download_link, program="python")
-	print(" Done !")
-	os.system(setup_path + " /passive PrependPath=1 Include_doc=0 Include_tcltk=0 Include_test=0")	# These parameters will trigger auto installation mode
 
+	latest_version = latest_version[0]
+
+
+	if are_versions_different(programs["python"].version, latest_version):
+		print_message(log_severity.update_available, "Python " + programs["python"].version + " ==> " + latest_version)
+		print_message(log_severity.info, "Downloading Python...", end="")
+		
+		repo_url = "https://www.python.org/ftp/python/" + latest_version + "/"
+		page = BeautifulSoup(do_request(repo_url).data, features="html.parser")
+		links = page.find_all("a")
+		download_link = ""
+		for link in links:
+			if "amd64" in link["href"] and link["href"].endswith(".exe"):
+				download_link = repo_url + link["href"]
+				break
+		
+		if download_link == "":
+			print_message(log_severity.error, "Could not find download link for python")
+			raise Skip
+		
+		setup_path = download_setup_file(download_link, program="python")
+		print(" Done !")
+		os.system(setup_path + " /passive PrependPath=1 Include_doc=0 Include_tcltk=0 Include_test=0")	# These parameters will trigger auto installation mode
+
+except:
+	pass
 
 
 ########## VLC MEDIA PLAYER ##########
@@ -929,49 +932,6 @@ try:
 		print_message(log_severity.update_available, "HxD " + programs["hxd"].version + " ==> " + latest_version)
 		print_message(log_severity.info, "Downloading HxD...", end="")
 		setup_path = download_setup_file("https://mh-nexus.de/downloads/HxDSetup.zip", program="hxd")
-		print(" Done !")
-		os.system("\"" + setup_path + "\"")
-
-
-except (FileNotFoundError, OSError):
-	print(" Not found.")
-except:
-	pass
-
-
-
-########## PROCESS HACKER 2 ##########
-
-print_message(log_severity.info, "Checking Process Hacker 2...", end="")
-
-try:
-	regkey = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1")
-	regvalue = winreg.QueryValueEx(regkey, "DisplayName")
-	regkey.Close()
-	programs["processhacker"].version = regvalue[0][15:]
-	programs["processhacker"].version = programs["processhacker"].version[0:programs["processhacker"].version.index(" ")]
-	print(" Version: " + programs["processhacker"].version)
-	
-	page = BeautifulSoup(do_request("https://processhacker.sourceforge.io/downloads.php").data, features="html.parser")
-	links = page.find_all("a", class_="text-left")
-	final_link = None
-
-	for link in links:
-		latest_version = re.search(r"(?<=\/processhacker\-)[\d\.]+", link["href"])
-		if latest_version:
-			final_link = link["href"]
-			break
-	
-	if final_link is None:
-		print_message(log_severity.error, "Could not find version for processhacker")
-		raise Skip
-	
-	latest_version = latest_version[0]
-	
-	if are_versions_different(programs["processhacker"].version, latest_version):
-		print_message(log_severity.update_available, "Process Hacker " + programs["processhacker"].version + " ==> " + latest_version)
-		print_message(log_severity.info, "Downloading Process Hacker...", end="")
-		setup_path = download_setup_file(final_link, program="processhacker", user_agent=None)
 		print(" Done !")
 		os.system("\"" + setup_path + "\"")
 
