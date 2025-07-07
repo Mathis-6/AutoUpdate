@@ -218,7 +218,7 @@ class Skip(Exception):
 
 # Getting the online version then decide if we update or not
 print_message(log_severity.info, "Checking for updates...", end="")
-latest_version = do_request("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/version").data.decode().rstrip()
+latest_version = do_request("https://raw.githubusercontent.com/Mathis-6/AutoUpdate/refs/heads/master/version").data.decode().rstrip()
 
 if VERSION != latest_version:
 	print(" New version available: '" + latest_version + "'")
@@ -226,7 +226,7 @@ if VERSION != latest_version:
 		choice = input("Make update ? [Y/n] ").lower()
 		if choice == "" or choice == "y" or choice == "yes":
 			print("Downloading update...", end="")
-			download_file("https://raw.githubusercontent.com/Noelite/AutoUpdate/main/AutoUpdate.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
+			download_file("https://raw.githubusercontent.com/Mathis-6/AutoUpdate/refs/heads/master/AutoUpdate.py" + ("c" if __file__.endswith(".pyc") else ""), __file__)
 			print(" OK !")
 			print("Stopping...")
 			exit(0)
